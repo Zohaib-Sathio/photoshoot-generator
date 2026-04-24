@@ -24,6 +24,15 @@
           <span class="seg-dot" style="--c:#6aa9ff"></span>OpenAI
         </button>
       </div>
+      <div class="seg seg-concurrency" role="tablist" aria-label="Parallel generations"
+           title="How many images generate at the same time. Higher = faster, more risk of rate-limit errors.">
+        <span class="seg-label">Parallel</span>
+        <button class="seg-btn" data-concurrency="1">1</button>
+        <button class="seg-btn" data-concurrency="2">2</button>
+        <button class="seg-btn active" data-concurrency="3">3</button>
+        <button class="seg-btn" data-concurrency="4">4</button>
+        <button class="seg-btn" data-concurrency="5">5</button>
+      </div>
       <button id="togglePrompts" class="ghost">Prompt settings</button>
       <button id="generateBtn" class="primary">Generate all</button>
     </div>

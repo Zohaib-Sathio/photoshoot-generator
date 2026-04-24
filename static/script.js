@@ -9,6 +9,7 @@ const state = {
   jobId: null,
   generating: false,
   provider: "gemini",   // "gemini" | "openai"
+  concurrency: 3,       // 1..5 — how many images generate in parallel
   totals: { cost: 0, images: 0, input: 0, outputImage: 0 },
 };
 
@@ -41,8 +42,19 @@ function setProvider(p) {
   $$(".seg-btn").forEach(b => b.classList.toggle("active", b.dataset.provider === p));
 }
 
-$$(".seg-btn").forEach(btn => {
+$$(".seg-btn[data-provider]").forEach(btn => {
   btn.addEventListener("click", () => setProvider(btn.dataset.provider));
+});
+
+function setConcurrency(n) {
+  const v = Math.max(1, Math.min(5, parseInt(n, 10) || 3));
+  state.concurrency = v;
+  $$(".seg-btn[data-concurrency]").forEach(b =>
+    b.classList.toggle("active", Number(b.dataset.concurrency) === v)
+  );
+}
+$$(".seg-btn[data-concurrency]").forEach(btn => {
+  btn.addEventListener("click", () => setConcurrency(btn.dataset.concurrency));
 });
 
 // Main tabs
@@ -351,23 +363,40 @@ async function generateAll() {
     t.card = addResultCard({ dressName: t.dress.name, angle: t.angle, id: uid() });
   }
 
-  let ok = 0, fail = 0;
-  for (const t of tasks) {
-    try {
-      const r = await generateOne({
-        dress: t.dress,
-        angle: t.angle,
-        jobId: state.jobId,
-        shotIndex: t.shotIndex,
-      });
-      fillResult(t.card, r);
-      ok++;
-    } catch (e) {
-      failResult(t.card, e.message || String(e));
-      fail++;
+  let ok = 0, fail = 0, inFlight = 0;
+  const queue = tasks.slice();
+  const updateStatus = () => {
+    const remaining = queue.length + inFlight;
+    const busy = inFlight > 0 ? ` · ${inFlight} in flight` : "";
+    setStatus(`${ok} done · ${fail} failed · ${remaining} left${busy}`);
+  };
+
+  async function worker() {
+    while (queue.length) {
+      const t = queue.shift();
+      inFlight++;
+      updateStatus();
+      try {
+        const r = await generateOne({
+          dress: t.dress,
+          angle: t.angle,
+          jobId: state.jobId,
+          shotIndex: t.shotIndex,
+        });
+        fillResult(t.card, r);
+        ok++;
+      } catch (e) {
+        failResult(t.card, e.message || String(e));
+        fail++;
+      } finally {
+        inFlight--;
+        updateStatus();
+      }
     }
-    setStatus(`${ok} done · ${fail} failed · ${tasks.length - ok - fail} left`);
   }
+
+  const workerCount = Math.max(1, Math.min(state.concurrency, tasks.length));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
   state.generating = false;
   $("#downloadZip").disabled = ok === 0;

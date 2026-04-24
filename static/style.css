@@ -107,6 +107,20 @@ p  { margin: 0; color: var(--text-dim); }
   display: inline-block;
 }
 
+.seg-concurrency .seg-label {
+  font-size: 11px;
+  color: var(--text-mute);
+  padding: 0 8px 0 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.seg-concurrency .seg-btn {
+  min-width: 26px;
+  padding: 6px 9px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------- Buttons ------- */
 button, .download {
   font: inherit;
