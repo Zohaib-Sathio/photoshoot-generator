@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python -m py_compile app.py image_generator.py prompts.py)",
       "Bash(awk '{print $NF}')",
-      "Bash(python -m py_compile prompts.py)"
+      "Bash(python -m py_compile prompts.py)",
+      "WebSearch"
     ]
   }
 }

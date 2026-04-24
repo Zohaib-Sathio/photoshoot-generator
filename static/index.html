@@ -97,6 +97,7 @@
       <h2>Results</h2>
       <div class="right">
         <span id="resultsStatus" class="status"></span>
+        <span id="resultsTotal" class="status total" hidden></span>
         <button id="downloadZip" class="primary small" disabled>Download all (.zip)</button>
       </div>
     </div>
@@ -151,6 +152,11 @@
       </div>
       <div class="result-meta">
         <div class="result-title"></div>
+        <div class="result-stats" hidden>
+          <span class="stat-cost" title="Estimated USD cost for this image"></span>
+          <span class="stat-sep">·</span>
+          <span class="stat-tokens" title="Token breakdown"></span>
+        </div>
         <div class="result-actions">
           <button class="refine-btn ghost small" type="button" hidden>Refine</button>
           <a class="download ghost small" download>Download</a>

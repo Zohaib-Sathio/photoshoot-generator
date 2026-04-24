@@ -93,7 +93,7 @@ async def generate(
     )
 
     try:
-        png_bytes = generate_photoshoot(ref_paths, final_prompt, provider=provider)  # type: ignore[arg-type]
+        png_bytes, meta = generate_photoshoot(ref_paths, final_prompt, provider=provider)  # type: ignore[arg-type]
     except Exception as e:
         raise HTTPException(500, f"Image generation failed: {e}") from e
 
@@ -110,6 +110,7 @@ async def generate(
             "filename": filename,
             "url": f"/outputs/{job}/{filename}",
             "prompt": final_prompt,
+            "meta": meta,
         }
     )
 
@@ -153,7 +154,7 @@ async def refine(
     )
 
     try:
-        png_bytes = generate_photoshoot(ref_paths, final_prompt, provider=provider)  # type: ignore[arg-type]
+        png_bytes, meta = generate_photoshoot(ref_paths, final_prompt, provider=provider)  # type: ignore[arg-type]
     except Exception as e:
         raise HTTPException(500, f"Image refinement failed: {e}") from e
 
@@ -176,6 +177,7 @@ async def refine(
             "prompt": final_prompt,
             "refined": True,
             "refine_index": n,
+            "meta": meta,
         }
     )
 

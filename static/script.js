@@ -9,6 +9,7 @@ const state = {
   jobId: null,
   generating: false,
   provider: "gemini",   // "gemini" | "openai"
+  totals: { cost: 0, images: 0, input: 0, outputImage: 0 },
 };
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -193,6 +194,85 @@ function fillResult(card, r) {
   if (refineBtn) refineBtn.hidden = false;
   const hint = card.querySelector(".refine-hint");
   if (hint) hint.hidden = false;
+
+  applyStatsToCard(card, r.meta);
+  accumulateTotals(r.meta);
+}
+
+function fmtUsd(v) {
+  if (v == null) return "—";
+  if (v < 0.01) return `$${v.toFixed(4)}`;
+  return `$${v.toFixed(3)}`;
+}
+function fmtTokens(n) {
+  if (!n) return "0";
+  if (n < 1000) return String(n);
+  return `${(n / 1000).toFixed(n < 10000 ? 2 : 1)}k`;
+}
+
+function applyStatsToCard(card, meta) {
+  const row = card.querySelector(".result-stats");
+  if (!row || !meta) return;
+  const costEl = row.querySelector(".stat-cost");
+  const tokEl = row.querySelector(".stat-tokens");
+  if (meta.cost_usd == null) {
+    costEl.textContent = "cost n/a";
+    costEl.title = "Token usage isn't reported for this provider";
+  } else {
+    costEl.textContent = fmtUsd(meta.cost_usd);
+    const b = meta.cost_breakdown || {};
+    costEl.title =
+      `Input: ${fmtUsd(b.input ?? 0)}  ·  ` +
+      `Output text: ${fmtUsd(b.output_text ?? 0)}  ·  ` +
+      `Output image: ${fmtUsd(b.output_image ?? 0)}`;
+  }
+  const tokensParts = [
+    `${fmtTokens(meta.input_tokens)} in`,
+    `${fmtTokens(meta.output_image_tokens)} img`,
+  ];
+  if (meta.output_text_tokens) tokensParts.push(`${fmtTokens(meta.output_text_tokens)} txt`);
+  tokEl.textContent = tokensParts.join(" · ");
+  tokEl.title =
+    `Input tokens: ${meta.input_tokens}\n` +
+    `Output image tokens: ${meta.output_image_tokens}\n` +
+    `Output text/thinking tokens: ${meta.output_text_tokens}\n` +
+    `Model: ${meta.model}` +
+    (meta.image_size ? `  (${meta.image_size}${meta.aspect_ratio ? ", " + meta.aspect_ratio : ""})` : "");
+  row.hidden = false;
+}
+
+function accumulateTotals(meta) {
+  if (!meta) return;
+  state.totals.images += 1;
+  state.totals.input += meta.input_tokens || 0;
+  state.totals.outputImage += meta.output_image_tokens || 0;
+  if (typeof meta.cost_usd === "number") state.totals.cost += meta.cost_usd;
+  renderTotals();
+}
+
+function resetTotals() {
+  state.totals = { cost: 0, images: 0, input: 0, outputImage: 0 };
+  renderTotals();
+}
+
+function renderTotals() {
+  const el = $("#resultsTotal");
+  if (!el) return;
+  if (state.totals.images === 0) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  el.textContent =
+    `${state.totals.images} image${state.totals.images === 1 ? "" : "s"} · ` +
+    `${fmtUsd(state.totals.cost)} · ` +
+    `${fmtTokens(state.totals.input + state.totals.outputImage)} tokens`;
+  el.title =
+    `Images: ${state.totals.images}\n` +
+    `Est. cost: ${fmtUsd(state.totals.cost)}\n` +
+    `Input tokens: ${state.totals.input}\n` +
+    `Output image tokens: ${state.totals.outputImage}`;
 }
 
 function failResult(card, message) {
@@ -262,6 +342,7 @@ async function generateAll() {
   state.jobId = uid() + uid();
   $("#resultsGrid").innerHTML = "";
   $("#downloadZip").disabled = true;
+  resetTotals();
   openResults();
   setStatus(`Generating ${tasks.length} image(s)…`);
 
