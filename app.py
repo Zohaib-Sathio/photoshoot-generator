@@ -120,6 +120,71 @@ async def generate(
     )
 
 
+@app.post("/api/refine")
+async def refine(
+    job_id: str = Form(...),
+    dress_name: str = Form(...),
+    angle: str = Form(...),
+    provider: str = Form("gemini"),
+    base_prompt: str = Form(...),
+    extra_instructions: str = Form(...),
+) -> JSONResponse:
+    """Re-generate a previously generated image with additional user instructions.
+
+    Uses the references already stored on disk from the original generation so
+    the client doesn't need to re-upload.
+    """
+    if provider not in {"gemini", "openai"}:
+        raise HTTPException(400, f"Unsupported provider: {provider}")
+    if angle not in {"front", "back", "side"}:
+        raise HTTPException(400, f"Unsupported angle: {angle}")
+    extra = (extra_instructions or "").strip()
+    if not extra:
+        raise HTTPException(400, "Extra instructions are empty.")
+
+    ref_dir = UPLOAD_DIR / job_id / _slug(dress_name) / angle
+    if not ref_dir.is_dir():
+        raise HTTPException(404, "Original references not found for this image.")
+    ref_paths = sorted(ref_dir.glob("ref_*"))
+    if not ref_paths:
+        raise HTTPException(404, "No reference images on disk for this job.")
+
+    final_prompt = (
+        f"{base_prompt}\n\n"
+        "ADDITIONAL USER INSTRUCTIONS — APPLY ON TOP OF EVERYTHING ABOVE "
+        "(these are higher priority than the defaults, except the face-crop rule):\n"
+        f"{extra}\n\n"
+        f"{prompts.FACE_CROP_EMPHASIS}"
+    )
+
+    try:
+        png_bytes = generate_photoshoot(ref_paths, final_prompt, provider=provider)  # type: ignore[arg-type]
+    except Exception as e:
+        raise HTTPException(500, f"Image refinement failed: {e}") from e
+
+    job_dir = OUTPUT_DIR / job_id
+    job_dir.mkdir(exist_ok=True)
+    base_slug = _slug(dress_name)
+    existing = list(job_dir.glob(f"{base_slug}_{angle}_refined*.png"))
+    n = len(existing) + 1
+    filename = f"{base_slug}_{angle}_refined{n:02d}.png"
+    out_path = job_dir / filename
+    out_path.write_bytes(png_bytes)
+
+    return JSONResponse(
+        {
+            "job_id": job_id,
+            "dress": dress_name,
+            "angle": angle,
+            "filename": filename,
+            "url": f"/outputs/{job_id}/{filename}",
+            "prompt": final_prompt,
+            "refined": True,
+            "refine_index": n,
+        }
+    )
+
+
 @app.get("/outputs/{job}/{filename}")
 def get_output(job: str, filename: str) -> FileResponse:
     path = OUTPUT_DIR / job / filename

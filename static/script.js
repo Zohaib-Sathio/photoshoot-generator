@@ -171,14 +171,28 @@ function addResultCard({ dressName, angle, id }) {
   return card;
 }
 
-function fillResult(card, { url, filename }) {
+function fillResult(card, r) {
   const img = card.querySelector(".result-img");
-  img.src = url;
+  img.src = r.url;
   img.hidden = false;
   card.querySelector(".result-spinner").style.display = "none";
   const a = card.querySelector(".download");
-  a.href = url;
-  a.setAttribute("download", filename);
+  a.href = r.url;
+  a.setAttribute("download", r.filename);
+
+  // Stash everything needed to refine this image later.
+  card.classList.add("ready");
+  if (r.refined) card.classList.add("refined");
+  card.dataset.url = r.url;
+  card.dataset.jobId = r.job_id;
+  card.dataset.dressName = r.dress;
+  card.dataset.angle = r.angle;
+  card.dataset.prompt = r.prompt || "";
+
+  const refineBtn = card.querySelector(".refine-btn");
+  if (refineBtn) refineBtn.hidden = false;
+  const hint = card.querySelector(".refine-hint");
+  if (hint) hint.hidden = false;
 }
 
 function failResult(card, message) {
@@ -284,6 +298,105 @@ $("#generateBtn").addEventListener("click", generateAll);
 $("#downloadZip").addEventListener("click", () => {
   if (!state.jobId) return;
   window.location.href = `/outputs/${state.jobId}.zip`;
+});
+
+// ---------- Refine flow ----------
+const refineModal = $("#refineModal");
+const refinePreview = $("#refinePreview");
+const refineInput = $("#refineInput");
+const refineTitle = $("#refineTitle");
+const refineSub = $("#refineSub");
+const refineGo = $("#refineGo");
+const refinePanel = refineModal.querySelector(".modal-panel");
+
+let refineTarget = null; // { jobId, dressName, angle, prompt, sourceCard }
+
+function openRefine(card) {
+  if (!card.classList.contains("ready")) return;
+  refineTarget = {
+    jobId: card.dataset.jobId,
+    dressName: card.dataset.dressName,
+    angle: card.dataset.angle,
+    prompt: card.dataset.prompt,
+    sourceCard: card,
+  };
+  const label = refineTarget.angle.charAt(0).toUpperCase() + refineTarget.angle.slice(1);
+  refineTitle.textContent = `Refine · ${refineTarget.dressName} — ${label}`;
+  refineSub.textContent = "Add extra instructions. Your original prompt is kept.";
+  refinePreview.src = card.dataset.url;
+  refineInput.value = "";
+  refineModal.hidden = false;
+  setTimeout(() => refineInput.focus(), 30);
+}
+
+function closeRefine() {
+  refineModal.hidden = true;
+  refineModal.classList.remove("busy");
+  refinePanel.classList.remove("loading");
+  refineTarget = null;
+}
+
+$("#refineClose").addEventListener("click", closeRefine);
+$("#refineCancel").addEventListener("click", closeRefine);
+refineModal.querySelector(".modal-backdrop").addEventListener("click", closeRefine);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !refineModal.hidden) closeRefine();
+});
+
+// Delegated click: open modal when a ready result card is clicked.
+$("#resultsGrid").addEventListener("click", e => {
+  const card = e.target.closest(".result-card");
+  if (!card || !card.classList.contains("ready")) return;
+  // Don't hijack the download link.
+  if (e.target.closest(".download")) return;
+  openRefine(card);
+});
+
+refineGo.addEventListener("click", async () => {
+  if (!refineTarget) return;
+  const extra = refineInput.value.trim();
+  if (!extra) {
+    refineInput.focus();
+    return;
+  }
+
+  refineModal.classList.add("busy");
+  refinePanel.classList.add("loading");
+
+  const fd = new FormData();
+  fd.append("job_id", refineTarget.jobId);
+  fd.append("dress_name", refineTarget.dressName);
+  fd.append("angle", refineTarget.angle);
+  fd.append("provider", state.provider);
+  fd.append("base_prompt", refineTarget.prompt);
+  fd.append("extra_instructions", extra);
+
+  // Prep a fresh card so the user sees the new image appear in the grid.
+  const newCard = addResultCard({
+    dressName: refineTarget.dressName,
+    angle: refineTarget.angle,
+    id: uid(),
+  });
+
+  try {
+    const res = await fetch("/api/refine", { method: "POST", body: fd });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = j.detail || msg; } catch {}
+      throw new Error(msg);
+    }
+    const r = await res.json();
+    fillResult(newCard, r);
+    state.jobId = r.job_id;
+    $("#downloadZip").disabled = false;
+    setStatus(`Refined image ready.`, "ok");
+    closeRefine();
+  } catch (e) {
+    failResult(newCard, e.message || String(e));
+    setStatus("Refinement failed.", "err");
+    refineModal.classList.remove("busy");
+    refinePanel.classList.remove("loading");
+  }
 });
 
 // ---------- Init ----------

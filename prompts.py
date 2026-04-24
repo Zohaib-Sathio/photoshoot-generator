@@ -12,13 +12,29 @@ Maintain exact:
 - Dupatta print, border, and placement
 Fabric must show natural drape, gravity, and realistic stitching.
 
-FABRIC CONDITION (CRITICAL)
-Garment must be neatly pressed and well-prepared:
-- Clean, crisp, and freshly ironed
-- No unwanted wrinkles, creases, or messy folds
-- Only subtle natural micro-folds where required by body movement
-Pressing must NOT affect or change print placement, pattern alignment, embroidery, or stitching structure.
-No distortion, redesign, smoothing, or pattern shifting."""
+FABRIC CONDITION — ZERO WRINKLES (CRITICAL)
+The garment must appear FRESHLY IRONED, CRISP, and FLAWLESSLY PRESSED on the model.
+This is retail-ready editorial quality — the outfit just came off a steam press.
+
+STRICTLY NO:
+- NO wrinkles anywhere on the outfit
+- NO creases (except the intentional trouser front crease if the design has one)
+- NO bunching at the waist, elbows, knees, or ankles
+- NO messy folds, ruffled fabric, or crumples
+- NO sag lines on sleeves or trousers
+- NO puckering at stitch lines
+- NO accidental dupatta crumples or twists
+
+REQUIRED:
+- Every surface of the kurta is smooth, taut, and clean
+- Dupatta fabric falls cleanly and smoothly across the body
+- Trousers hang smoothly from waistband to ankle
+- Sleeves are crisp and unwrinkled
+- Fabric looks starched and pristine, as if professionally pressed moments before the shot
+- Only the most subtle physics-driven micro-folds are allowed (e.g., a faint fold at the inner elbow if the arm is bent) — and these must be minimal, never messy
+
+Pressing and smoothing must NOT affect or alter print placement, pattern alignment, embroidery, or stitching structure.
+No distortion, redesign, smoothing of print detail, or pattern shifting — the garment is pristine AND identical to the reference."""
 
 MODEL_PROMPT = """MODEL (INFLUENCER VIBE — NATURAL, RELATABLE)
 South Asian female body, mid-to-late 20s build.
@@ -27,14 +43,39 @@ Warm natural skin tone with slight imperfections on hands, arms, neck, and chin.
 Minimal jewelry: thin layered necklace resting on the collarbone.
 She is wearing heels matching the color of the dress.
 
-CROPPING — THIS IS A HEADLESS / FACELESS FASHION SHOT
-This photograph has NO FACE and NO HEAD in it. It is a body-only lookbook image.
-- The TOP EDGE of the frame sits AT LIP LEVEL. Everything above the mouth is OUTSIDE the photo.
-- No eyes, no nose, no forehead, no eyebrows, no hairline, no ears, no top of head, no cheeks above the mouth.
-- Do NOT generate a full face. Do NOT generate a portrait. Do NOT draw facial features above the mouth.
-- What IS visible at the top of the frame: a sliver of lips and chin only.
-- Treat this like high-end e-commerce fashion photography where the subject is deliberately anonymous by framing — the OUTFIT is the hero, the person is only a body below the lips.
-If the pose would naturally show the face, CROP TIGHTER or LOWER the camera — never include the face."""
+CROPPING — THIS IS A HEADLESS / FACELESS FASHION SHOT (#1 PRIORITY RULE)
+This photograph has NO FACE and NO HEAD in it. It is a strictly body-only lookbook image.
+This is the SINGLE MOST IMPORTANT RULE of the entire prompt. Every other instruction is secondary to this.
+
+HARD CONSTRAINTS — DO NOT VIOLATE UNDER ANY CIRCUMSTANCE:
+- The TOP EDGE of the image is AT LIP LEVEL. Everything above the mouth is CUT OFF — it does NOT exist in the photo.
+- The image is FACELESS. There is NO face. There is NO head. There is NO portrait.
+- ABSOLUTELY DO NOT render: eyes, eyelashes, eyebrows, nose, nostrils, forehead, temples, hairline, hair on the head, top of skull, ears, cheekbones, or any facial feature located above the mouth.
+- DO NOT show the upper jaw, upper lip area connecting to nose, or any anatomy that implies a face is just out of frame in a way that lets you draw it.
+- DO NOT generate a full-body shot that includes the head — the head MUST be cut off by the top of the frame.
+- DO NOT generate a face and then crop it; the face must NEVER be drawn in the first place.
+- DO NOT show the model's face from any angle: not from the side, not from behind, not in shadow, not blurred, not pixelated, not turned away, not partially hidden. NO FACE PIXELS AT ALL.
+
+WHAT IS ALLOWED IN THE FRAME (and ONLY this):
+- A small sliver of the lower lip and chin at the very top edge of the photo (optional — may also be cropped away).
+- Jawline (lower portion only, below the mouth), neck, collarbones, shoulders.
+- Full torso, arms, hands, hips, legs, feet, shoes.
+- The complete outfit — kurta, dupatta, trousers — and the background.
+
+CAMERA POSITION (use this to enforce the crop):
+- Frame the camera so the TOP of the picture lands on the model's mouth line.
+- Imagine the model's face is physically ABOVE the photograph — outside it, not visible, not implied.
+- This is identical to anonymous e-commerce fashion photography (think SSENSE, Net-a-Porter "model body" thumbnails) where the model is intentionally faceless.
+
+VERIFICATION CHECKLIST (the output FAILS if any of these are true):
+- ❌ Any eye is visible
+- ❌ A nose is visible
+- ❌ A forehead is visible
+- ❌ Hair on the head is visible
+- ❌ Two full lips with surrounding face are visible (only a thin lip sliver at the very top is allowed)
+- ❌ The viewer can tell what the model's face looks like
+
+If you cannot satisfy these constraints with the requested pose, CHANGE the framing — crop tighter, lower the camera, or zoom in — but NEVER show the face. The face rule overrides pose, composition, and every other instruction in this prompt."""
 
 BACKGROUND_PROMPT = """BACKGROUND (REAL HOME — NOT STAGED)
 Ultra-realistic lived-in luxury home interior.
@@ -95,16 +136,39 @@ ANGLES = {
 
 
 FACE_CROP_EMPHASIS = (
-    "ABSOLUTE COMPOSITION RULE — READ FIRST, APPLY LAST:\n"
-    "This image is a HEADLESS, FACELESS fashion lookbook photograph. "
-    "NO face, NO head, NO facial features appear anywhere in the output. "
-    "The TOP EDGE of the frame cuts across the MOUTH — only a sliver of lips and chin is visible at the top. "
-    "Forbidden in the image: eyes, nose, forehead, eyebrows, hairline, ears, top of head, full face, portrait framing. "
-    "Allowed in the image: partial lips, chin, jawline, neck, shoulders, torso, arms, hands, hips, legs, feet, outfit, background. "
-    "Think of this as anonymous high-end e-commerce fashion photography: the outfit is the subject, "
-    "the person is deliberately made anonymous by cropping the camera at the mouth line. "
-    "If any pose or composition choice would bring the face into the frame, crop tighter or lower the camera — "
-    "the face rule overrides every other instruction."
+    "============================================================\n"
+    "ABSOLUTE #1 RULE — NO FACE, NO HEAD, FACELESS IMAGE ONLY\n"
+    "============================================================\n"
+    "This image MUST be FACELESS and HEADLESS. There is NO FACE in this photograph. "
+    "The model's HEAD IS NOT IN THE FRAME. The TOP EDGE of the photo cuts across the MOUTH.\n"
+    "\n"
+    "STRICTLY FORBIDDEN — DO NOT RENDER ANY OF THESE:\n"
+    "- NO eyes. NO eyelashes. NO eyebrows.\n"
+    "- NO nose. NO nostrils.\n"
+    "- NO forehead. NO temples. NO hairline.\n"
+    "- NO hair on the head. NO scalp. NO top of head. NO skull.\n"
+    "- NO ears.\n"
+    "- NO upper cheeks. NO cheekbones.\n"
+    "- NO full face from any angle (front, side, back, blurred, shadowed, pixelated, turned away — NONE).\n"
+    "- NO portrait. NO headshot. NO half-face. NO three-quarter face.\n"
+    "- NO implied face just above the frame edge with smooth-skin transition that could be mistaken for a chin/face.\n"
+    "\n"
+    "STRICTLY ALLOWED — ONLY these body parts may appear:\n"
+    "- A thin sliver of the lower lip and chin at the very top edge (or no lips at all — both are fine).\n"
+    "- Lower jawline, neck, collarbones, shoulders, torso, arms, hands, hips, legs, feet, shoes.\n"
+    "- The outfit and the background.\n"
+    "\n"
+    "FRAMING INSTRUCTION:\n"
+    "Position the camera so the TOP of the frame lands ON THE MOUTH LINE. "
+    "The model's face exists ABOVE the photograph — physically outside it, completely invisible. "
+    "Treat this exactly like SSENSE / Net-a-Porter / Zara anonymous body-only e-commerce thumbnails: "
+    "deliberately faceless by framing, where the OUTFIT is the subject and the model is anonymous.\n"
+    "\n"
+    "FAILURE DEFINITION:\n"
+    "If even ONE of {eye, nose, forehead, eyebrow, hair on head, ear, full lips with surrounding face} is visible, "
+    "the output is a FAILURE and must be re-composed. The face rule OVERRIDES every other instruction in this prompt — "
+    "pose, composition, lighting, garment display — all of them are SECONDARY to keeping the face out of the image.\n"
+    "============================================================"
 )
 
 
@@ -122,15 +186,21 @@ def build_prompt(
     """
     return (
         f"{FACE_CROP_EMPHASIS}\n\n"
-        "Ultra-realistic Instagram influencer-style fashion photo of a South Asian female model "
+        "Ultra-realistic Instagram influencer-style FACELESS body-only fashion photo of a South Asian female model "
         "wearing the exact outfit from the provided mannequin reference images. "
-        "The photograph is framed from the LIPS DOWN ONLY — the face is not in the image.\n\n"
+        "The photograph is FRAMED FROM THE LIPS DOWN ONLY. The face, head, eyes, nose, forehead, and hair are "
+        "NOT in the image. The image starts at mouth level and extends down to the feet. "
+        "This is a headless lookbook shot — the OUTFIT is the subject, the model is anonymous by framing.\n\n"
         f"{garment}\n\n"
         f"{model}\n\n"
         f"{pose}\n\n"
         f"{background}\n\n"
         f"{output}\n\n"
-        f"{FACE_CROP_EMPHASIS}"
+        f"{FACE_CROP_EMPHASIS}\n\n"
+        "FINAL REMINDER BEFORE GENERATION: This image must contain NO FACE. "
+        "If your draft includes any eye, nose, forehead, hair on the head, or recognizable face, "
+        "RE-COMPOSE the image with a tighter crop so the face is completely out of frame. "
+        "The output must be FACELESS — body only, lips down to feet."
     )
 
 

@@ -147,15 +147,48 @@
         <div class="result-spinner"></div>
         <img class="result-img" hidden alt="" />
         <div class="result-error" hidden></div>
+        <button class="refine-hint" type="button" hidden>✎ Click to refine</button>
       </div>
       <div class="result-meta">
         <div class="result-title"></div>
         <div class="result-actions">
+          <button class="refine-btn ghost small" type="button" hidden>Refine</button>
           <a class="download ghost small" download>Download</a>
         </div>
       </div>
     </div>
   </template>
+
+  <div id="refineModal" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="refineTitle">Refine image</h2>
+          <p class="modal-sub" id="refineSub">Add extra instructions and regenerate.</p>
+        </div>
+        <button id="refineClose" class="ghost small" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-preview">
+          <img id="refinePreview" alt="" />
+        </div>
+        <div class="modal-form">
+          <label for="refineInput">Additional instructions</label>
+          <textarea id="refineInput" rows="10"
+            placeholder="e.g. Change the background to a marble terrace at golden hour. Keep the outfit identical. Make the dupatta drape more over the shoulder."></textarea>
+          <p class="modal-note">
+            Your original prompt is kept. These instructions are appended and take priority,
+            except the face-crop rule which is always enforced.
+          </p>
+          <div class="modal-actions">
+            <button id="refineCancel" class="ghost" type="button">Cancel</button>
+            <button id="refineGo" class="primary" type="button">Regenerate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="/script.js"></script>
 </body>
