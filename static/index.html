@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Photoshoot Generator</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>Photoshoot Generator</h1>
+        <p class="sub">Turn mannequin shots into on-model lookbook photos.</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="seg" role="tablist" aria-label="Image provider">
+        <button class="seg-btn active" data-provider="gemini" title="Google Gemini 2.5 Flash Image (nano banana)">
+          <span class="seg-dot" style="--c:#ffd166"></span>Gemini
+        </button>
+        <button class="seg-btn" data-provider="openai" title="OpenAI gpt-image-2 (verified orgs only)">
+          <span class="seg-dot" style="--c:#6aa9ff"></span>OpenAI
+        </button>
+      </div>
+      <button id="togglePrompts" class="ghost">Prompt settings</button>
+      <button id="generateBtn" class="primary">Generate all</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel panel-dresses">
+      <div class="panel-head">
+        <h2>Dresses</h2>
+        <button id="addDressBtn" class="primary small">+ Add dress</button>
+      </div>
+      <div id="dressList" class="dress-list"></div>
+    </section>
+
+    <aside class="panel panel-prompts" id="promptPanel">
+      <div class="panel-head">
+        <h2>Prompt settings</h2>
+        <button id="resetPrompts" class="ghost small">Reset to defaults</button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="garment">Garment</button>
+        <button class="tab" data-tab="model">Model</button>
+        <button class="tab" data-tab="background">Background</button>
+        <button class="tab" data-tab="output">Output &amp; quality</button>
+        <button class="tab" data-tab="angles">Angles</button>
+      </div>
+
+      <div class="tab-bodies">
+        <div class="tab-body active" data-tab="garment">
+          <label>Garment fidelity rules</label>
+          <textarea id="prompt_garment" rows="14"></textarea>
+        </div>
+        <div class="tab-body" data-tab="model">
+          <label>Model appearance &amp; cropping</label>
+          <textarea id="prompt_model" rows="14"></textarea>
+        </div>
+        <div class="tab-body" data-tab="background">
+          <label>Background, lighting, photography</label>
+          <textarea id="prompt_background" rows="14"></textarea>
+        </div>
+        <div class="tab-body" data-tab="output">
+          <label>Output framing &amp; image-quality instructions</label>
+          <textarea id="prompt_output" rows="14"></textarea>
+        </div>
+        <div class="tab-body" data-tab="angles">
+          <div class="sub-tabs">
+            <button class="sub-tab active" data-angle="front">Front</button>
+            <button class="sub-tab" data-angle="back">Back</button>
+            <button class="sub-tab" data-angle="side">Side</button>
+          </div>
+          <div class="angle-body active" data-angle="front">
+            <label>Front shot — pose &amp; what to show</label>
+            <textarea id="prompt_angle_front" rows="12"></textarea>
+          </div>
+          <div class="angle-body" data-angle="back">
+            <label>Back shot — pose &amp; what to show</label>
+            <textarea id="prompt_angle_back" rows="12"></textarea>
+          </div>
+          <div class="angle-body" data-angle="side">
+            <label>Side shot — pose &amp; what to show</label>
+            <textarea id="prompt_angle_side" rows="12"></textarea>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="panel panel-results" id="resultsPanel" hidden>
+    <div class="panel-head">
+      <h2>Results</h2>
+      <div class="right">
+        <span id="resultsStatus" class="status"></span>
+        <button id="downloadZip" class="primary small" disabled>Download all (.zip)</button>
+      </div>
+    </div>
+    <div id="resultsGrid" class="results-grid"></div>
+  </section>
+
+  <template id="dressCardTpl">
+    <div class="dress-card">
+      <div class="dress-head">
+        <input type="text" class="dress-name" placeholder="Dress name (e.g. Rose kurta set)" />
+        <button class="ghost small remove-dress" title="Remove">✕</button>
+      </div>
+      <div class="angle-slots">
+        <div class="slot" data-angle="front">
+          <input type="file" accept="image/png,image/jpeg,image/webp" hidden />
+          <div class="slot-label">Front</div>
+          <div class="slot-thumb">
+            <div class="slot-plus">+</div>
+            <img hidden alt="front" />
+            <button class="slot-rm" type="button" hidden title="Remove">×</button>
+          </div>
+        </div>
+        <div class="slot" data-angle="back">
+          <input type="file" accept="image/png,image/jpeg,image/webp" hidden />
+          <div class="slot-label">Back</div>
+          <div class="slot-thumb">
+            <div class="slot-plus">+</div>
+            <img hidden alt="back" />
+            <button class="slot-rm" type="button" hidden title="Remove">×</button>
+          </div>
+        </div>
+        <div class="slot" data-angle="side">
+          <input type="file" accept="image/png,image/jpeg,image/webp" hidden />
+          <div class="slot-label">Side</div>
+          <div class="slot-thumb">
+            <div class="slot-plus">+</div>
+            <img hidden alt="side" />
+            <button class="slot-rm" type="button" hidden title="Remove">×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="resultCardTpl">
+    <div class="result-card">
+      <div class="result-img-wrap">
+        <div class="result-spinner"></div>
+        <img class="result-img" hidden alt="" />
+        <div class="result-error" hidden></div>
+      </div>
+      <div class="result-meta">
+        <div class="result-title"></div>
+        <div class="result-actions">
+          <a class="download ghost small" download>Download</a>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="/script.js"></script>
+</body>
+</html>

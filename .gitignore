@@ -1,0 +1,10 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+uploads/
+outputs/
+wetransfer_*/
+*.zip
+!requirements.txt
