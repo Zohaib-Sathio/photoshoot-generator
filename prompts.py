@@ -46,7 +46,23 @@ South Asian female body, mid-to-late 20s build.
 Slim but natural (not overly posed).
 Warm natural skin tone with slight imperfections on hands, arms, neck, and chin.
 Minimal jewelry: thin layered necklace resting on the collarbone.
-She is wearing heels matching the color of the dress.
+
+DEFAULT SHOES — FIXED IN EVERY IMAGE (DO NOT SUBSTITUTE)
+The model wears EXACTLY THE SAME pair of shoes in every generated image,
+regardless of the dress design, color, print, or style. Shoes are a fixed
+brand-standard element — they do NOT adapt to the outfit.
+
+The default shoe is:
+- Nude / skin-tone pointed-toe pumps (classic court-shoe silhouette)
+- Smooth, plain leather finish — no embellishments, no bows, no buckles, no studs
+- Medium stiletto heel, ~8 cm / 3 inches tall
+- Pointed toe box, low vamp over the top of the foot
+- No ankle strap, no T-strap, no open toe, no platform
+
+This exact same pair appears in the FRONT, BACK, and SIDE shots — same color,
+same heel height, same toe shape, same finish. Do NOT swap in flats, sandals,
+dress-colored heels, embellished heels, or any alternative footwear. The shoe
+is a constant across all dresses and all angles.
 
 CROPPING — THIS IS A HEADLESS / FACELESS FASHION SHOT (#1 PRIORITY RULE)
 This photograph has NO FACE and NO HEAD in it. It is a strictly body-only lookbook image.
