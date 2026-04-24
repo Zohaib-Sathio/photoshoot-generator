@@ -47,7 +47,9 @@ def _generate_gemini(paths: list[Path], prompt: str) -> bytes:
     from google import genai
     from PIL import Image
 
-    model = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+    # "Nano Banana Pro" = gemini-3-pro-image-preview. Higher fidelity and
+    # stronger instruction-following than the 2.5 flash image model.
+    model = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3-pro-image-preview")
     client = genai.Client(api_key=api_key)
 
     images = [Image.open(p) for p in paths]

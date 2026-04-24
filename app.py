@@ -15,7 +15,7 @@ import shutil
 import uuid
 import zipfile
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -60,35 +60,28 @@ async def generate(
     job_id: str = Form(""),
     provider: str = Form("gemini"),
     angle: str = Form("front"),
-    references: List[UploadFile] = File(...),
+    ref_front: Optional[UploadFile] = File(None),
+    ref_back: Optional[UploadFile] = File(None),
+    ref_side: Optional[UploadFile] = File(None),
 ) -> JSONResponse:
     if provider not in {"gemini", "openai"}:
         raise HTTPException(400, f"Unsupported provider: {provider}")
     if angle not in {"front", "back", "side"}:
         raise HTTPException(400, f"Unsupported angle: {angle}")
-    if not references:
+
+    uploads = [("front", ref_front), ("back", ref_back), ("side", ref_side)]
+    uploads = [(a, f) for a, f in uploads if f is not None]
+    if not uploads:
         raise HTTPException(400, "At least one reference image is required.")
-    if len(references) > 5:
-        raise HTTPException(400, "Maximum 5 reference images per dress.")
 
     job = job_id or uuid.uuid4().hex[:12]
     job_dir = OUTPUT_DIR / job
     job_dir.mkdir(exist_ok=True)
 
-    ref_dir = UPLOAD_DIR / job / _slug(dress_name) / angle
+    ref_dir = UPLOAD_DIR / job / _slug(dress_name)
     ref_dir.mkdir(parents=True, exist_ok=True)
 
-    ref_paths: list[Path] = []
-    for idx, up in enumerate(references):
-        ext = Path(up.filename or "").suffix.lower() or ".png"
-        if ext not in ALLOWED_EXTS:
-            raise HTTPException(400, f"Unsupported file type: {ext}")
-        body = await up.read()
-        if len(body) > MAX_UPLOAD_BYTES:
-            raise HTTPException(400, f"Image too large: {up.filename}")
-        dest = ref_dir / f"ref_{idx:02d}{ext}"
-        dest.write_bytes(body)
-        ref_paths.append(dest)
+    ref_paths, ref_angles = await _save_references(uploads, ref_dir)
 
     final_prompt = prompts.build_prompt(
         garment=garment_prompt,
@@ -96,6 +89,7 @@ async def generate(
         background=background_prompt,
         output=output_prompt,
         pose=pose,
+        reference_key=prompts.build_reference_key(ref_angles),
     )
 
     try:
@@ -142,18 +136,19 @@ async def refine(
     if not extra:
         raise HTTPException(400, "Extra instructions are empty.")
 
-    ref_dir = UPLOAD_DIR / job_id / _slug(dress_name) / angle
-    if not ref_dir.is_dir():
-        raise HTTPException(404, "Original references not found for this image.")
-    ref_paths = sorted(ref_dir.glob("ref_*"))
+    ref_dir = UPLOAD_DIR / job_id / _slug(dress_name)
+    ref_paths, ref_angles = _load_references(ref_dir)
     if not ref_paths:
-        raise HTTPException(404, "No reference images on disk for this job.")
+        raise HTTPException(404, "Original references not found for this image.")
 
+    ref_key = prompts.build_reference_key(ref_angles)
     final_prompt = (
         f"{base_prompt}\n\n"
         "ADDITIONAL USER INSTRUCTIONS — APPLY ON TOP OF EVERYTHING ABOVE "
-        "(these are higher priority than the defaults, except the face-crop rule):\n"
+        "(higher priority than the defaults, except the face-crop and design-consistency rules):\n"
         f"{extra}\n\n"
+        + (f"{ref_key}\n\n" if ref_key else "")
+        + f"{prompts.DESIGN_CONSISTENCY_EMPHASIS}\n\n"
         f"{prompts.FACE_CROP_EMPHASIS}"
     )
 
@@ -215,6 +210,49 @@ def _slug(s: str) -> str:
     keep = [c if c.isalnum() or c in "-_" else "_" for c in s.strip()]
     slug = "".join(keep).strip("_") or "dress"
     return slug[:40]
+
+
+async def _save_references(
+    uploads: list[tuple[str, UploadFile]], ref_dir: Path
+) -> tuple[list[Path], list[str]]:
+    """Persist each angle-labelled upload, overwriting any previous ref for that
+    angle, and return (paths, angles) in the order they'll be sent to the model.
+    """
+    ref_paths: list[Path] = []
+    ref_angles: list[str] = []
+    for angle_tag, up in uploads:
+        ext = Path(up.filename or "").suffix.lower() or ".png"
+        if ext not in ALLOWED_EXTS:
+            raise HTTPException(400, f"Unsupported file type: {ext}")
+        body = await up.read()
+        if len(body) > MAX_UPLOAD_BYTES:
+            raise HTTPException(400, f"Image too large: {up.filename}")
+        # Remove any existing ref for this angle with a different extension.
+        for old in ref_dir.glob(f"ref_{angle_tag}.*"):
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        dest = ref_dir / f"ref_{angle_tag}{ext}"
+        dest.write_bytes(body)
+        ref_paths.append(dest)
+        ref_angles.append(angle_tag)
+    return ref_paths, ref_angles
+
+
+def _load_references(ref_dir: Path) -> tuple[list[Path], list[str]]:
+    """Recover previously saved references from disk in front/back/side order."""
+    if not ref_dir.is_dir():
+        return [], []
+    order = ["front", "back", "side"]
+    paths: list[Path] = []
+    angles: list[str] = []
+    for angle in order:
+        matches = list(ref_dir.glob(f"ref_{angle}.*"))
+        if matches:
+            paths.append(matches[0])
+            angles.append(angle)
+    return paths, angles
 
 
 app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

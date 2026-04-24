@@ -211,7 +211,7 @@ function anglePromptFor(angle) {
   return $(map[angle]).value;
 }
 
-async function generateOne({ dress, angle, jobId, references, shotIndex }) {
+async function generateOne({ dress, angle, jobId, shotIndex }) {
   const fd = new FormData();
   fd.append("dress_name", dress.name || "dress");
   fd.append("angle", angle);
@@ -223,7 +223,11 @@ async function generateOne({ dress, angle, jobId, references, shotIndex }) {
   fd.append("shot_index", String(shotIndex));
   fd.append("job_id", jobId);
   fd.append("provider", state.provider);
-  references.forEach(f => fd.append("references", f, f.name));
+  // Send each uploaded angle under its own field so the server knows which is which.
+  ANGLES.forEach(a => {
+    const file = dress.images[a];
+    if (file) fd.append(`ref_${a}`, file, file.name);
+  });
 
   const res = await fetch("/api/generate", { method: "POST", body: fd });
   if (!res.ok) {
@@ -238,14 +242,14 @@ async function generateAll() {
   if (state.generating) return;
 
   // Build the task list: one shot per uploaded angle, per dress.
-  // Each call sends ALL uploaded angles as references for fabric fidelity.
+  // generateOne() reads dress.images directly and sends each angle as its own field.
   const tasks = [];
   for (const dress of state.dresses) {
-    const refs = ANGLES.map(a => dress.images[a]).filter(Boolean);
-    if (refs.length === 0) continue;
+    const hasAny = ANGLES.some(a => dress.images[a]);
+    if (!hasAny) continue;
     ANGLES.forEach((angle, i) => {
       if (!dress.images[angle]) return;
-      tasks.push({ dress, angle, references: refs, shotIndex: i });
+      tasks.push({ dress, angle, shotIndex: i });
     });
   }
 
@@ -272,7 +276,6 @@ async function generateAll() {
       const r = await generateOne({
         dress: t.dress,
         angle: t.angle,
-        references: t.references,
         jobId: state.jobId,
         shotIndex: t.shotIndex,
       });

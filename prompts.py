@@ -12,6 +12,11 @@ Maintain exact:
 - Dupatta print, border, and placement
 Fabric must show natural drape, gravity, and realistic stitching.
 
+CROSS-VIEW CONSISTENCY
+The front, back, and side images are the SAME dress from different angles.
+Colors, prints, embroidery, borders, trims, fabric, and proportions must be
+IDENTICAL across all three views. Do not invent variations or drift between shots.
+
 FABRIC CONDITION — ZERO WRINKLES (CRITICAL)
 The garment must appear FRESHLY IRONED, CRISP, and FLAWLESSLY PRESSED on the model.
 This is retail-ready editorial quality — the outfit just came off a steam press.
@@ -135,6 +140,42 @@ ANGLES = {
 }
 
 
+DESIGN_CONSISTENCY_EMPHASIS = (
+    "============================================================\n"
+    "ABSOLUTE RULE — GARMENT DESIGN CONSISTENCY ACROSS ALL VIEWS\n"
+    "============================================================\n"
+    "The provided reference images are the SAME physical garment photographed from "
+    "different angles (front / back / side). When generating any angle, you MUST "
+    "render the EXACT SAME dress with IDENTICAL design details:\n"
+    "- IDENTICAL fabric color, shade, and saturation (no drift between views)\n"
+    "- IDENTICAL print pattern, motif scale, and placement\n"
+    "- IDENTICAL embroidery placement, density, and stitching detail\n"
+    "- IDENTICAL neckline shape, sleeve length, cuff detail, hem length\n"
+    "- IDENTICAL dupatta print, border, pallu detail, and drape length\n"
+    "- IDENTICAL trouser cut, side border, ankle detail, and waistband\n"
+    "- IDENTICAL material weight, weave, sheen, and texture\n"
+    "- IDENTICAL buttons, ties, tassels, lace, piping, zippers, and all trims\n"
+    "\n"
+    "DO NOT:\n"
+    "- Invent design variations not shown in the references\n"
+    "- Shift, rescale, or relocate prints / motifs between angles\n"
+    "- Change embroidery shape or position between angles\n"
+    "- Change fabric color, shade, or saturation between angles\n"
+    "- Add details absent from the references\n"
+    "- Remove details present in the references\n"
+    "- Replace any part of the outfit with a different design\n"
+    "\n"
+    "When rendering the BACK angle: use the BACK reference image to copy the exact "
+    "back-panel design. When rendering the SIDE angle: use the SIDE reference to copy "
+    "the exact side silhouette. If a specific angle reference is missing, INFER the "
+    "unseen side from the adjacent references while keeping color, print, and material "
+    "IDENTICAL — never invent new ornamentation.\n"
+    "\n"
+    "This is ONE dress shown from multiple angles. Every generated view must look "
+    "like the same physical garment photographed moments apart."
+)
+
+
 FACE_CROP_EMPHASIS = (
     "============================================================\n"
     "ABSOLUTE #1 RULE — NO FACE, NO HEAD, FACELESS IMAGE ONLY\n"
@@ -172,35 +213,67 @@ FACE_CROP_EMPHASIS = (
 )
 
 
+def build_reference_key(angles: list[str]) -> str:
+    """Describe which reference image corresponds to which view.
+
+    `angles` is an ordered list like ["front", "back", "side"] matching the
+    order the reference files are sent to the image model.
+    """
+    if not angles:
+        return ""
+    lines = []
+    for i, a in enumerate(angles):
+        if a in ("front", "back", "side"):
+            lines.append(f"- Reference image #{i + 1}: {a.upper()} view of the IDENTICAL garment")
+    if not lines:
+        return ""
+    return (
+        "REFERENCE IMAGE KEY — USE THESE TO LOCK DESIGN DETAILS ACROSS ANGLES:\n"
+        + "\n".join(lines)
+        + "\nWhen generating an angle that has a matching reference, COPY that reference's design "
+        "EXACTLY — same colors, prints, embroidery, borders, and stitching. When generating an angle "
+        "without its own reference, INFER it from the adjacent references while keeping every design "
+        "element identical; do NOT invent new motifs or trims."
+    )
+
+
 def build_prompt(
     garment: str,
     model: str,
     background: str,
     output: str,
     pose: str,
+    reference_key: str = "",
 ) -> str:
     """Assemble the final prompt sent to the image model for a single shot.
 
-    `pose` here receives the angle-specific block (front / back / side) that
-    the UI sends per generation.
+    `pose` receives the angle-specific block (front / back / side) that the UI
+    sends per generation. `reference_key` is an optional mapping of reference
+    image index → angle, injected near the top so the model knows which
+    reference is which.
     """
+    ref_block = f"{reference_key}\n\n" if reference_key else ""
     return (
         f"{FACE_CROP_EMPHASIS}\n\n"
+        f"{DESIGN_CONSISTENCY_EMPHASIS}\n\n"
+        f"{ref_block}"
         "Ultra-realistic Instagram influencer-style FACELESS body-only fashion photo of a South Asian female model "
         "wearing the exact outfit from the provided mannequin reference images. "
         "The photograph is FRAMED FROM THE LIPS DOWN ONLY. The face, head, eyes, nose, forehead, and hair are "
         "NOT in the image. The image starts at mouth level and extends down to the feet. "
-        "This is a headless lookbook shot — the OUTFIT is the subject, the model is anonymous by framing.\n\n"
+        "This is a headless lookbook shot — the OUTFIT is the subject, the model is anonymous by framing. "
+        "The outfit in this image is IDENTICAL in every detail to the provided references.\n\n"
         f"{garment}\n\n"
         f"{model}\n\n"
         f"{pose}\n\n"
         f"{background}\n\n"
         f"{output}\n\n"
+        f"{DESIGN_CONSISTENCY_EMPHASIS}\n\n"
         f"{FACE_CROP_EMPHASIS}\n\n"
-        "FINAL REMINDER BEFORE GENERATION: This image must contain NO FACE. "
-        "If your draft includes any eye, nose, forehead, hair on the head, or recognizable face, "
-        "RE-COMPOSE the image with a tighter crop so the face is completely out of frame. "
-        "The output must be FACELESS — body only, lips down to feet."
+        "FINAL REMINDER BEFORE GENERATION:\n"
+        "1. NO FACE — the image must be faceless, framed from the lips down only.\n"
+        "2. IDENTICAL DRESS — the garment must exactly match the reference images in every design detail.\n"
+        "If either rule would be violated, re-compose the image until BOTH rules are satisfied."
     )
 
 
