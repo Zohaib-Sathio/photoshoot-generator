@@ -138,19 +138,16 @@ async def refine(
         raise HTTPException(400, "Extra instructions are empty.")
 
     ref_dir = UPLOAD_DIR / job_id / _slug(dress_name)
-    ref_paths, ref_angles = _load_references(ref_dir)
+    ref_paths, _ = _load_references(ref_dir)
     if not ref_paths:
         raise HTTPException(404, "Original references not found for this image.")
 
-    ref_key = prompts.build_reference_key(ref_angles)
     final_prompt = (
         f"{base_prompt}\n\n"
-        "ADDITIONAL USER INSTRUCTIONS — APPLY ON TOP OF EVERYTHING ABOVE "
-        "(higher priority than the defaults, except the face-crop and design-consistency rules):\n"
+        "ADDITIONAL USER INSTRUCTIONS (apply on top; face-rule and design-consistency rule "
+        "still override):\n"
         f"{extra}\n\n"
-        + (f"{ref_key}\n\n" if ref_key else "")
-        + f"{prompts.DESIGN_CONSISTENCY_EMPHASIS}\n\n"
-        f"{prompts.FACE_CROP_EMPHASIS}"
+        "ENFORCE BOTH RULES: (1) no face, (2) dress identical to references."
     )
 
     try:
