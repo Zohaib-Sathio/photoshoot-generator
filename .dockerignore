@@ -1,0 +1,55 @@
+# Keep the build context tiny — everything below is excluded from `COPY`.
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local env + secrets (mount .env at runtime via docker-compose or -e)
+.env
+.env.*
+!.env.example
+
+# Runtime data — volumes handle this
+uploads/
+outputs/
+
+# Large local assets
+wetransfer_*/
+*.zip
+*.rar
+*.7z
+
+# VCS / editor / OS
+.git/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code / tooling
+.claude/
+CLAUDE.md
+
+# Docs (keep SETUP.md inside the image if you like; excluded here for smaller context)
+*.md
+!SETUP.md
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Host-side startup scripts — not needed in the container
+run.bat
+run.sh

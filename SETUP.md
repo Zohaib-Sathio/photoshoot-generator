@@ -43,6 +43,51 @@ Both scripts create `.venv`, install dependencies, and start the server at
 6. Download images individually or **Download all (.zip)** once the job
    finishes.
 
+## Deploy with Docker
+
+1. Put your keys in `.env` on the host (same format as `.env.example`).
+2. Build + start:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. Open `http://<server>:8000`.
+
+- Generated images persist in `./outputs/` on the host; references in `./uploads/`.
+- Logs: `docker compose logs -f photoshoot`
+- Update: `git pull && docker compose up -d --build`
+- Stop: `docker compose down`
+
+If you prefer plain Docker without Compose:
+
+```bash
+docker build -t photoshoot-generator .
+docker run -d --name photoshoot \
+  -p 8000:8000 \
+  --env-file .env \
+  -v "$(pwd)/outputs:/app/outputs" \
+  -v "$(pwd)/uploads:/app/uploads" \
+  --restart unless-stopped \
+  photoshoot-generator
+```
+
+### Behind a reverse proxy
+
+If you're fronting the container with nginx / Caddy / Traefik, point the proxy at
+`http://127.0.0.1:8000` and raise the upload body limit to ~20 MB so 3-image
+dress uploads aren't rejected. Example nginx:
+
+```nginx
+location / {
+    client_max_body_size 20M;
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
 ## Project layout
 
 ```

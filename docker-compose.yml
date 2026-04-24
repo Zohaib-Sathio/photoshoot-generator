@@ -1,0 +1,20 @@
+services:
+  photoshoot:
+    build: .
+    image: photoshoot-generator:latest
+    container_name: photoshoot-generator
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persist generated images + reference uploads on the host.
+      - ./outputs:/app/outputs
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/defaults', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

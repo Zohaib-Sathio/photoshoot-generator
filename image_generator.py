@@ -63,7 +63,7 @@ def _generate_gemini(paths: list[Path], prompt: str) -> tuple[bytes, dict]:
     from PIL import Image
 
     model = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3-pro-image-preview")
-    image_size = os.getenv("GEMINI_IMAGE_SIZE", "1K")      # "512" | "1K" | "2K" | "4K"
+    image_size = os.getenv("GEMINI_IMAGE_SIZE", "2K")      # "512" | "1K" | "2K" | "4K"
     aspect_ratio = os.getenv("GEMINI_ASPECT_RATIO", "4:5")
 
     client = genai.Client(api_key=api_key)
